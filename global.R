@@ -86,4 +86,7 @@ if (!file.exists(birthplaces_rds)) {
 birthplaces <- readRDS(birthplaces_rds)
 
 # Shiny app
-shinyApp(ui, server)
+source("server.R")
+source("ui.R")
+
+shinyApp(ui = ui, server = server)

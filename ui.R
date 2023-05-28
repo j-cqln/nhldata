@@ -6,7 +6,7 @@ ui <- fluidPage(
   sidebarLayout(
     # Sidebar panel for year input
     sidebarPanel(
-      strong("What's this?"),
+      strong("NHL historical data"),
       p("Season by season data from 1917/18 to 2022/23."),
       p("Data retrieved from the NHL API (https://statsapi.web.nhl.com/api/v1/)."),
       br(),
@@ -23,8 +23,8 @@ ui <- fluidPage(
     # Main panel for displaying map
     mainPanel(
       tabsetPanel(
-        tabPanel("Birthplaces of players active during the season", leafletOutput("map", width = "100%"))
-        # tabPanel("To be deteremined")
+        tabPanel("Birthplaces of players active during the season", leafletOutput("birthplaces_map", width = "100%"), br(), p("Click on a map marker to see location name and number of players.")),
+        tabPanel("More coming soon")
       )
     )
   )

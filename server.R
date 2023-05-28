@@ -3,7 +3,7 @@ server <- function(input, output, session) {
     x <- subset(birthplaces, start_year == input$year)
   })
   
-  output$map <- renderLeaflet({
+  output$birthplaces_map <- renderLeaflet({
     m <- leaflet() %>% addProviderTiles(provider = providers$Stamen.Watercolor, options = providerTileOptions(minZoom = 1)) %>%
                   setView(lng = -20, lat = 30, zoom = 2)
     m
@@ -12,7 +12,7 @@ server <- function(input, output, session) {
   observe({
     df <- data()
     
-    leafletProxy("map", data = df) %>%
+    leafletProxy("birthplaces_map", data = df) %>%
       clearMarkers() %>%
       addCircleMarkers(lat = df$lat,
                        lng = df$lon,
