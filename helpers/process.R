@@ -33,62 +33,66 @@ get.birthplaces <- function(first_year, last_year, name) {
     players <- bind_rows(teams_content$teams$roster.roster, .id = "column_label")
     
     # Retrieve data for every player
-    for (i in 1:length(players$person.id)) {
-      # Player data
-      player_response <- GET(paste("https://statsapi.web.nhl.com/api/v1/people/",
-                                   toString(players$person.id[i]),
-                                   sep = ""))
-      
-      player_content <- fromJSON(rawToChar(player_response$content))
-      
-      player <- player_content$people
-      
-      nationality <- player$nationality
-      
-      city <- player$birthCity
-      country <- player$birthCountry
-      
-      # Determine USA/CAN (state/province data provided) or other
-      if ("birthStateProvince" %in% colnames(player)) {
-        usa_can_city <- paste(city, player$birthStateProvince, sep = " ")
+    n <- nrow(players)
+    
+    if (n > 0) {
+      for (i in 1:n) {
+        # Player data
+        player_response <- GET(paste("https://statsapi.web.nhl.com/api/v1/people/",
+                                     toString(players$person.id[i]),
+                                     sep = ""))
         
-        if (country == "CAN") {
-          lat <- canada.cities$lat[canada.cities$name == usa_can_city]
-          lon <- canada.cities$long[canada.cities$name == usa_can_city]
+        player_content <- fromJSON(rawToChar(player_response$content))
+        
+        player <- player_content$people
+        
+        nationality <- player$nationality
+        
+        city <- player$birthCity
+        country <- player$birthCountry
+        
+        # Determine USA/CAN (state/province data provided) or other
+        if ("birthStateProvince" %in% colnames(player)) {
+          usa_can_city <- paste(city, player$birthStateProvince, sep = " ")
+          
+          if (country == "CAN") {
+            lat <- canada.cities$lat[canada.cities$name == usa_can_city]
+            lon <- canada.cities$long[canada.cities$name == usa_can_city]
+          } else {
+            lat <- us.cities$lat[us.cities$name == usa_can_city]
+            lon <- us.cities$long[us.cities$name == usa_can_city]
+          }
+          
         } else {
-          lat <- us.cities$lat[us.cities$name == usa_can_city]
-          lon <- us.cities$long[us.cities$name == usa_can_city]
+          lat <- world.cities$lat[world.cities$name == city &
+                                    countrycode(world.cities$country.etc,
+                                                origin = "country.name",
+                                                destination = "iso3c") == country]
+          
+          lon <- world.cities$long[world.cities$name == city &
+                                     countrycode(world.cities$country.etc,
+                                                 origin = "country.name",
+                                                 destination = "iso3c") == country]
         }
         
-      } else {
-        lat <- world.cities$lat[world.cities$name == city &
-                                  countrycode(world.cities$country.etc,
-                                              origin = "country.name",
-                                              destination = "iso3c") == country]
-        
-        lon <- world.cities$long[world.cities$name == city &
-                                   countrycode(world.cities$country.etc,
-                                               origin = "country.name",
-                                               destination = "iso3c") == country]
-      }
-      
-      # Add geographical data if player not accounted for this season
-      # Geographical information may not be available
-      if (!any(geo_data$person.id == player$id &
-               geo_data$start_year == start_year)) {
-        
-        if (identical(lat, numeric(0))) {
-          lat <- NA
-          lon <- NA
+        # Add geographical data if player not accounted for this season
+        # Geographical information may not be available
+        if (!any(geo_data$person.id == player$id &
+                 geo_data$start_year == start_year)) {
+          
+          if (identical(lat, numeric(0))) {
+            lat <- NA
+            lon <- NA
+          }
+          
+          geo_data[nrow(geo_data) + 1, ] <- list(start_year,
+                                                 player$id,
+                                                 city,
+                                                 country,
+                                                 lat,
+                                                 lon,
+                                                 nationality)
         }
-        
-        geo_data[nrow(geo_data) + 1,] <- list(start_year,
-                                              player$id,
-                                              city,
-                                              country,
-                                              lat,
-                                              lon,
-                                              nationality)
       }
     }
   }
@@ -213,6 +217,7 @@ get.shots <- function(first_year, last_year, name) {
                                       '.csv')))
     
     temp_shots <- temp_shots %>%
+      select(where(function (x) any(!is.na(x)))) %>%
       rename(shot_id = shotID,
              away_team = awayTeamCode,
              home_team = homeTeamCode,
@@ -252,7 +257,8 @@ get.shots <- function(first_year, last_year, name) {
              team_score = ifelse(team == "HOME", home_goals, away_goals),
              opposing_team = ifelse(team == "HOME", away_team, home_team),
              team = ifelse(team == "HOME", home_team, away_team),
-             goal_diff = team_score - opposing_score)
+             goal_diff = team_score - opposing_score) %>%
+      filter(!(x == 0 & y == 0))
     
     if (start_year == first_year) {
       shots <- temp_shots
@@ -314,7 +320,7 @@ get.shots <- function(first_year, last_year, name) {
                             frozen, stopped,
                             in_zone, out_zone, generate_rebound,
                             xg,
-                            region, region.avg.xg)
+                            region, region_avg_g, region_avg_xg)
   # Save shots data
   saveRDS(shots, name)
   

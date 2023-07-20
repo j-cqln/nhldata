@@ -81,7 +81,7 @@ server <- function(input, output, session) {
       scale_fill_manual(values = c('#d54545', '#ef9ba3', '#1295d0', '#73c3e8')) +
       scale_y_continuous(name = 'Shots',
                          sec.axis = sec_axis(~.*coeff, name = 'Goals')) +
-      labs(title = 'Shots and goals per team',
+      labs(title = paste0('Shots and goals per team, ', input$year_shots),
            subtitle = 'Regular season and playoffs (if qualified)',
            caption = 'Created by github.com/j-cqln',
            x = 'Event (shots or goals)',
