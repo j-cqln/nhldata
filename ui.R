@@ -1,6 +1,3 @@
-library(shiny)
-library(leaflet)
-
 ui <- fluidPage(
   titlePanel("NHL over the years"),
   

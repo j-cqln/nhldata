@@ -1,26 +1,33 @@
-library(dplyr)
 library(httr)
 library(jsonlite)
 
-library(sp)
+library(dplyr)
 
+library(stringi)
 library(maps)
 library(countrycode)
 
-data(world.cities)
-data(canada.cities)
-data(us.cities)
+library(sp)
 
 # Get birthplaces
 get.birthplaces <- function(first_year, last_year, name) {
-  geo_data <- data.frame(matrix(ncol = 7, nrow = 0))
-  colnames(geo_data) <- c("start_year", "person_id",
-                          "birth_city", "birth_country",
-                          "lat", "long",
-                          "nationality")
+  data(world.cities)
+  data(canada.cities)
+  data(us.cities)
+  
+  world.cities$name <- tolower(world.cities$name)
+  world.cities$country.etc <- countrycode(world.cities$country.etc,
+                                          origin = "country.name",
+                                          destination = "iso3c")
+  
+  canada.cities$name <- tolower(canada.cities$name)
+  us.cities$name <- tolower(us.cities$name)
+  
+  geo_data <- list()
+  geo_data_capacity <- 1
+  geo_data_size <- 0
   
   # Retrieve data for every season
-  # e.g. start_year 2022 is 2022-23 season
   for (start_year in first_year:last_year) {
     # All teams roster data
     teams_response <- GET("https://statsapi.web.nhl.com/api/v1/teams",
@@ -38,9 +45,8 @@ get.birthplaces <- function(first_year, last_year, name) {
     if (n > 0) {
       for (i in 1:n) {
         # Player data
-        player_response <- GET(paste("https://statsapi.web.nhl.com/api/v1/people/",
-                                     toString(players$person.id[i]),
-                                     sep = ""))
+        player_response <- GET(paste0("https://statsapi.web.nhl.com/api/v1/people/",
+                                      toString(players$person.id[i])))
         
         player_content <- fromJSON(rawToChar(player_response$content))
         
@@ -51,32 +57,30 @@ get.birthplaces <- function(first_year, last_year, name) {
         city <- player$birthCity
         country <- player$birthCountry
         
-        # Determine USA/CAN (state/province data provided) or other
+        city_search <- tolower(stri_trans_general(city, "latin-ascii"))
+        
+        # Determine CAN/USA (state/province data provided) or other
         if ("birthStateProvince" %in% colnames(player)) {
-          usa_can_city <- paste(city, player$birthStateProvince, sep = " ")
+          can_usa_city_search <- tolower(paste(city_search, player$birthStateProvince))
           
           if (country == "CAN") {
-            lat <- canada.cities$lat[canada.cities$name == usa_can_city]
-            lon <- canada.cities$long[canada.cities$name == usa_can_city]
+            lat <- canada.cities$lat[canada.cities$name == can_usa_city_search]
+            lon <- canada.cities$long[canada.cities$name == can_usa_city_search]
           } else {
-            lat <- us.cities$lat[us.cities$name == usa_can_city]
-            lon <- us.cities$long[us.cities$name == usa_can_city]
+            lat <- us.cities$lat[us.cities$name == can_usa_city_search]
+            lon <- us.cities$long[us.cities$name == can_usa_city_search]
           }
           
         } else {
-          lat <- world.cities$lat[world.cities$name == city &
-                                    countrycode(world.cities$country.etc,
-                                                origin = "country.name",
-                                                destination = "iso3c") == country]
+          lat <- world.cities$lat[world.cities$name == city_search &
+                                    world.cities$country.etc == country]
           
-          lon <- world.cities$long[world.cities$name == city &
-                                     countrycode(world.cities$country.etc,
-                                                 origin = "country.name",
-                                                 destination = "iso3c") == country]
+          lon <- world.cities$long[world.cities$name == city_search &
+                                     world.cities$country.etc == country]
         }
         
         # Add geographical data if player not accounted for this season
-        # Geographical information may not be available
+        # Coordinates may not be available
         if (!any(geo_data$person.id == player$id &
                  geo_data$start_year == start_year)) {
           
@@ -85,20 +89,35 @@ get.birthplaces <- function(first_year, last_year, name) {
             lon <- NA
           }
           
-          geo_data[nrow(geo_data) + 1, ] <- list(start_year,
-                                                 player$id,
-                                                 city,
-                                                 country,
-                                                 lat,
-                                                 lon,
-                                                 nationality)
+          if (geo_data_capacity == geo_data_size) {
+            geo_data_capacity <- geo_data_capacity * 2
+            length(geo_data) <- geo_data_capacity
+          }
+          
+          geo_data_size <- geo_data_size + 1
+          
+          geo_data[[geo_data_size]] <- list(start_year,
+                                            player$id,
+                                            city,
+                                            country,
+                                            lat,
+                                            lon,
+                                            nationality)
         }
       }
     }
   }
   
+  geo_data <- do.call(rbind.data.frame, geo_data)
+  colnames(geo_data) <- c("start_year", "person_id",
+                          "birth_city", "birth_country",
+                          "lat", "lon",
+                          "nationality")
+  
   # Count players by season and birthplace
-  birthplaces <- geo_data %>% count(start_year, birth_city, birth_country, lat, long)
+  birthplaces <- geo_data %>% count(start_year,
+                                    birth_city, birth_country,
+                                    lat, lon)
   
   # Save birthplaces data
   saveRDS(birthplaces, name)
