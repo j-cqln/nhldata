@@ -96,23 +96,19 @@ get.birthplaces <- function(first_year, last_year, name) {
           
           geo_data_size <- geo_data_size + 1
           
-          geo_data[[geo_data_size]] <- list(start_year,
-                                            player$id,
-                                            city,
-                                            country,
-                                            lat,
-                                            lon,
-                                            nationality)
+          geo_data[[geo_data_size]] <- data.frame(start_year = start_year,
+                                                  person_id = player$id,
+                                                  birth_city = city,
+                                                  birth_country = country,
+                                                  lat = lat,
+                                                  lon = lon,
+                                                  nationality = nationality)
         }
       }
     }
   }
   
-  geo_data <- do.call(rbind.data.frame, geo_data)
-  colnames(geo_data) <- c("start_year", "person_id",
-                          "birth_city", "birth_country",
-                          "lat", "lon",
-                          "nationality")
+  geo_data <- data.frame(Reduce(rbind, geo_data))
   
   # Count players by season and birthplace
   birthplaces <- geo_data %>% count(start_year,

@@ -6,7 +6,7 @@ library(gridExtra)
 
 server <- function(input, output, session) {
   data <- reactive({
-    b <- subset(birthplaces, start_year == input$year_bio)
+    b <- na.omit(subset(birthplaces, start_year == input$year_bio))
     s <- subset(shots, season == input$year_shots)
     
     x <- list(birthplaces = b, shots = s)
@@ -36,7 +36,7 @@ server <- function(input, output, session) {
     
     head(b %>%
            group_by(birth_country) %>%
-           summarise(players = n()) %>%
+           summarise(players = sum(n)) %>%
            ungroup() %>%
            arrange(desc(players)) %>%
            mutate(country = countrycode(birth_country,
@@ -50,7 +50,8 @@ server <- function(input, output, session) {
     background_color <- '#ffffff'
     
     s <- shots %>%
-      filter(season == input$year_shots) %>%
+      filter(season == input$year_shots,
+             on_goal == 1) %>%
       group_by(team, season_type) %>%
       summarise(shots = n(),
                 goals = sum(goal)) %>%
@@ -78,7 +79,7 @@ server <- function(input, output, session) {
       geom_col(width = 1,
                position = position_stack(reverse = FALSE)) +
       scale_alpha_continuous(guide = FALSE) +
-      scale_fill_manual(values = c('#d54545', '#ef9ba3', '#1295d0', '#73c3e8')) +
+      scale_fill_manual(values = c('#c82f2f', '#ef9ba3', '#0074a7', '#73c3e8')) +
       scale_y_continuous(name = 'Shots',
                          sec.axis = sec_axis(~.*coeff, name = 'Goals')) +
       labs(title = paste0('Shots and goals per team, ', input$year_shots),
@@ -112,7 +113,8 @@ server <- function(input, output, session) {
     title3 <- paste0('Shots against by % goal, ',
                      input$year_shots, ' ')
     
-    s <- shots %>% filter(season == input$year_shots)
+    s <- shots %>% filter(season == input$year_shots,
+                          on_goal == 1)
     
     s_hexbin <- hexbin::hexbin(s$x, s$y, xbins = 21, IDs = TRUE)
     s_hexbin_df <- data.frame(hexbin::hcell2xy(s_hexbin),
@@ -296,7 +298,8 @@ server <- function(input, output, session) {
                      input$year_shots, ' ')
     
     s <- shots %>%
-      filter(season == input$year_shots) %>%
+      filter(season == input$year_shots,
+             on_goal == 1) %>%
       mutate(season_type = factor(season_type,
                                   levels = c('regular', 'playoffs'),
                                   labels = c('regular', 'playoffs')))
@@ -368,7 +371,8 @@ server <- function(input, output, session) {
                      input$year_shots, ' ')
     
     s <- shots %>%
-      filter(season == input$year_shots) %>%
+      filter(season == input$year_shots,
+             on_goal == 1) %>%
       mutate(season_type = factor(season_type,
                                   levels = c('regular', 'playoffs'),
                                   labels = c('regular', 'playoffs')))
