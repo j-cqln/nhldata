@@ -1,11 +1,11 @@
 library(shiny)
 library(leaflet)
 
-source("R/process.R")
-source("R/rink.R")
+source("utils/process.R")
+source("utils/rink.R")
 
-source("ui.R")
-source("server.R")
+source("app/ui.R")
+source("app/server.R")
 
 # Shiny app
 shinyApp(ui = ui, server = server)
