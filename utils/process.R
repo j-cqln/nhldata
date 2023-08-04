@@ -265,7 +265,7 @@ get.shots <- function(first_year, last_year, name) {
              season_type = ifelse(isPlayoffGame == 0, "regular", "playoffs"),
              x = -yCordAdjusted,
              y = -xCordAdjusted,
-             abs.angle = abs(angle),
+             abs_angle = abs(angle),
              opposing_skaters = ifelse(team == "HOME", away_skaters, home_skaters),
              team_skaters = ifelse(team == "HOME", home_skaters, away_skaters),
              opposing_score = ifelse(team == "HOME", away_goals, home_goals),
@@ -273,7 +273,7 @@ get.shots <- function(first_year, last_year, name) {
              opposing_team = ifelse(team == "HOME", away_team, home_team),
              team = ifelse(team == "HOME", home_team, away_team),
              goal_diff = team_score - opposing_score) %>%
-      filter(!(x == 0 & y == 0))
+      filter(!(x == 0 & y == 0 & season_type == "playoffs"))
     
     if (start_year == first_year) {
       shots <- temp_shots
@@ -329,7 +329,7 @@ get.shots <- function(first_year, last_year, name) {
                             team_score, opposing_score, goal_diff,
                             shooter, shooter_id, shooter_handedness, off_wing,
                             goalie, goalie_id,
-                            x, y, distance, angle, abs.angle, shot_type,
+                            x, y, distance, angle, abs_angle, shot_type,
                             goal,
                             on_goal, is_rebound,
                             frozen, stopped,
