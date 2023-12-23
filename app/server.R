@@ -14,7 +14,7 @@ server <- function(input, output, session) {
   
   output$birthplaces_map <- renderLeaflet({
     leaflet() %>%
-      addProviderTiles(provider = providers$Stamen.Watercolor,
+      addProviderTiles(provider = providers$OpenStreetMap,
                        options = providerTileOptions(minZoom = 1)) %>%
       setView(lng = -20, lat = 30, zoom = 2)
   })
